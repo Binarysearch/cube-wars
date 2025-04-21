@@ -12,7 +12,8 @@ export class UnitService {
   
   // Configuración
   private isDebugMode: boolean = false;
-  public repulsionStrength: number = 0.02; // Fuerza de repulsión entre unidades
+  private readonly UNIT_SIZE: number = 0.7; // Unidades más pequeñas
+  public repulsionStrength: number = 0.035; // Aumentar ligeramente la fuerza de repulsión
   
   constructor() { }
   
@@ -22,18 +23,54 @@ export class UnitService {
   
   // Crear unidades distribuidas aleatoriamente
   createUnits(numUnits: number, boardSize: number): void {
-    const unitSize = 1; // Tamaño estándar de las unidades
-    
     for (let i = 0; i < numUnits; i++) {
       // Generar posición aleatoria en el tablero
       const x = (Math.random() * boardSize) - (boardSize / 2);
       const z = (Math.random() * boardSize) - (boardSize / 2);
-      const position = new THREE.Vector3(x, unitSize / 2, z);
+      const position = new THREE.Vector3(x, this.UNIT_SIZE / 2, z);
       
       // Crear nueva unidad
-      const unit = new Unit(unitSize, position, this.scene, this.isDebugMode);
+      const unit = new Unit(this.UNIT_SIZE, position, this.scene, this.isDebugMode);
       this.units.push(unit);
     }
+  }
+  
+  // Mover unidades seleccionadas a un punto destino
+  moveUnitsTo(units: Unit[], targetPoint: THREE.Vector3): void {
+    if (units.length === 0) return;
+    
+    // Si solo hay una unidad, moverla directamente al punto
+    if (units.length === 1) {
+      units[0].moveTo(targetPoint);
+      return;
+    }
+    
+    // Para múltiples unidades, distribuirlas uniformemente por la superficie del círculo
+    const numUnits = units.length;
+    
+    // Radio del círculo proporcional al número de unidades
+    const radius = Math.max(2, Math.sqrt(numUnits) * 0.8);
+    
+    units.forEach((unit) => {
+      // Generar un punto aleatorio dentro del círculo usando el método de rechazo
+      let r, theta, offsetX, offsetZ;
+      
+      // Para una distribución uniforme dentro del círculo
+      // Usamos el método de coordenadas polares con raíz cuadrada
+      r = Math.sqrt(Math.random()) * radius; // La raíz cuadrada distribuye uniformemente en el área
+      theta = Math.random() * Math.PI * 2; // Ángulo aleatorio
+      
+      offsetX = r * Math.cos(theta);
+      offsetZ = r * Math.sin(theta);
+      
+      const unitTarget = new THREE.Vector3(
+        targetPoint.x + offsetX,
+        targetPoint.y,
+        targetPoint.z + offsetZ
+      );
+      
+      unit.moveTo(unitTarget);
+    });
   }
   
   // Actualizar todas las unidades (física, colisiones)

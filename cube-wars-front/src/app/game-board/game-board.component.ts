@@ -18,7 +18,7 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
   private animationFrameId: number | null = null;
   
   // Configuración del juego
-  private readonly BOARD_SIZE: number = 20;
+  private readonly BOARD_SIZE: number = 40;
   private readonly NUM_UNITS: number = 50;
   private isDebugMode: boolean = true;
 
@@ -101,6 +101,10 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
   onContextMenu(event: Event): void {
     // Prevenir la aparición del menú contextual del navegador
     event.preventDefault();
+    
+    // Si hay unidades seleccionadas, moverlas hacia el punto de clic
+    const mouseEvent = event as MouseEvent;
+    this.moveSelectedUnitsTo(mouseEvent.clientX, mouseEvent.clientY);
   }
 
   // También podemos cancelar la selección al pulsar ESC
@@ -274,6 +278,28 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isSelecting && this.selectionBox) {
       this.renderer2.setStyle(this.selectionBox, 'display', 'none');
       this.isSelecting = false;
+    }
+  }
+
+  // Método para mover unidades seleccionadas hacia un punto
+  private moveSelectedUnitsTo(clientX: number, clientY: number): void {
+    const selectedUnits = this.unitService.getSelectedUnits();
+    if (selectedUnits.length === 0) return;
+    
+    // Crear un rayo desde la cámara hasta el punto de clic
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, this.cameraService.getCamera());
+    
+    // Intersección con el tablero para obtener el punto de destino
+    const intersects = raycaster.intersectObject(this.gameBoard);
+    
+    if (intersects.length > 0) {
+      const targetPoint = intersects[0].point;
+      this.unitService.moveUnitsTo(selectedUnits, targetPoint);
     }
   }
 }

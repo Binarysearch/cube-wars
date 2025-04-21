@@ -12,6 +12,10 @@ export class Unit {
   public velocity: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   public acceleration: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   
+  // Sistema de movimiento hacia objetivo
+  private targetPosition: THREE.Vector3 | null = null;
+  private readonly MOVEMENT_SPEED: number = 0.05; // Velocidad moderada
+  
   // Parámetros de configuración
   private readonly COLLISION_RADIUS_FACTOR: number = 1.8; 
   private readonly DAMPING: number = 0.95; // Factor de amortiguación para evitar movimientos perpetuos
@@ -50,6 +54,17 @@ export class Unit {
     this.setDebugMode(isDebug);
   }
   
+  // Mover hacia un punto objetivo
+  public moveTo(targetPoint: THREE.Vector3): void {
+    // Establecer nuevo objetivo
+    this.targetPosition = new THREE.Vector3(targetPoint.x, this.mesh.position.y, targetPoint.z);
+  }
+  
+  // Detener el movimiento dirigido
+  public stopMovement(): void {
+    this.targetPosition = null;
+  }
+  
   // Comprobar colisión con otra unidad
   public checkCollision(other: Unit): boolean {
     const distance = this.mesh.position.distanceTo(other.mesh.position);
@@ -81,14 +96,35 @@ export class Unit {
   
   // Actualizar física (posición y colisión)
   public update(): void {
-    // Añadir aceleración a velocidad
+    // Establecer la velocidad a cero inicialmente cada frame
+    this.velocity.set(0, 0, 0);
+    
+    // Si hay un objetivo, calcular movimiento directo y uniforme hacia él
+    if (this.targetPosition) {
+      const direction = new THREE.Vector3();
+      direction.subVectors(this.targetPosition, this.mesh.position).normalize();
+      
+      // Si estamos muy cerca del objetivo, detener movimiento
+      if (this.mesh.position.distanceTo(this.targetPosition) < 0.2) {
+        this.stopMovement();
+      } else {
+        // Establecer velocidad directamente (movimiento uniforme)
+        const moveVelocity = direction.multiplyScalar(this.MOVEMENT_SPEED);
+        this.velocity.copy(moveVelocity);
+      }
+    }
+    
+    // Sumar la aceleración por repulsión a la velocidad
     this.velocity.add(this.acceleration);
     
-    // Amortiguación para evitar movimientos perpetuos
-    this.velocity.multiplyScalar(this.DAMPING);
+    // Amortiguación solo para la componente de repulsión
+    // Esto mantiene el movimiento uniforme hacia el objetivo
+    if (!this.targetPosition) {
+      this.velocity.multiplyScalar(this.DAMPING);
+    }
     
-    // Si la velocidad es muy baja, detener completamente
-    if (this.velocity.length() < 0.01) {
+    // Si la velocidad es muy baja y no hay objetivo, detener completamente
+    if (this.velocity.length() < 0.01 && !this.targetPosition) {
       this.velocity.set(0, 0, 0);
     }
     
