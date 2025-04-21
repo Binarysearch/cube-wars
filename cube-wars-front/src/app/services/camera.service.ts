@@ -13,6 +13,9 @@ export class CameraService {
   // Raycaster para detectar intersecciones
   private raycaster = new THREE.Raycaster();
   
+  // Cámara de referencia para cálculos durante el panning
+  private referenceCam: THREE.PerspectiveCamera | null = null;
+  
   // Control de panning
   private isDragging = false;
   private initialIntersection = new THREE.Vector3();
@@ -44,6 +47,12 @@ export class CameraService {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Si existe cámara de referencia, actualizar también
+    if (this.referenceCam) {
+      this.referenceCam.aspect = window.innerWidth / window.innerHeight;
+      this.referenceCam.updateProjectionMatrix();
+    }
   }
   
   // Método para iniciar el panning
@@ -53,7 +62,10 @@ export class CameraService {
     // Guardar la posición inicial de la cámara
     this.initialCameraPosition.copy(this.camera.position);
     
-    // Obtener el punto de intersección inicial
+    // Crear una cámara de referencia que se mantendrá fija durante toda la operación
+    this.referenceCam = this.camera.clone();
+    
+    // Obtener el punto de intersección inicial usando la cámara de referencia
     const intersectionPoint = this.getRayIntersection(clientX, clientY);
     if (intersectionPoint) {
       this.initialIntersection.copy(intersectionPoint);
@@ -62,9 +74,9 @@ export class CameraService {
   
   // Método para realizar el panning durante el movimiento
   performPanning(clientX: number, clientY: number): void {
-    if (!this.isDragging) return;
+    if (!this.isDragging || !this.referenceCam) return;
     
-    // Obtener el punto de intersección actual
+    // Obtener el punto de intersección actual usando la cámara de referencia
     const intersectionPoint = this.getRayIntersection(clientX, clientY);
     if (!intersectionPoint) return;
     
@@ -73,23 +85,19 @@ export class CameraService {
     const diffX = this.currentIntersection.x - this.initialIntersection.x;
     const diffZ = this.currentIntersection.z - this.initialIntersection.z;
     
-    // Mover la cámara en la dirección opuesta al movimiento del mouse (efecto de "arrastre")
+    // Mover la cámara principal en la dirección opuesta al movimiento del mouse
     this.camera.position.x = this.initialCameraPosition.x - diffX;
     this.camera.position.z = this.initialCameraPosition.z - diffZ;
     
     // Mantenemos la altura de la cámara constante
     this.camera.position.y = this.initialCameraPosition.y;
     
-    // Calculamos el punto central para mirar en la dirección correcta
-    // Esto mantiene la misma orientación de la cámara durante el panning
-    const targetX = this.camera.position.x - (this.initialCameraPosition.x - 0);
-    const targetZ = this.camera.position.z - (this.initialCameraPosition.z - 0);
-    this.camera.lookAt(targetX, 0, targetZ);
   }
   
   // Método para finalizar el panning
   stopPanning(): void {
     this.isDragging = false;
+    this.referenceCam = null; // Liberar la cámara de referencia
   }
   
   // Método para obtener el punto de intersección del rayo con el tablero
@@ -99,8 +107,11 @@ export class CameraService {
     mouse.x = (clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(clientY / window.innerHeight) * 2 + 1;
     
-    // Actualizar el raycaster con la posición del mouse y la cámara
-    this.raycaster.setFromCamera(mouse, this.camera);
+    // Usar la cámara de referencia durante el panning, de lo contrario usar la cámara principal
+    const cameraToUse = (this.isDragging && this.referenceCam) ? this.referenceCam : this.camera;
+    
+    // Actualizar el raycaster con la posición del mouse y la cámara apropiada
+    this.raycaster.setFromCamera(mouse, cameraToUse);
     
     // Calcular intersecciones con el tablero
     const intersects = this.raycaster.intersectObject(this.gameBoard);
