@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as THREE from 'three';
-import { Unit } from '../models/unit.model';
+import { Unit, TeamType } from '../models/unit.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +13,8 @@ export class UnitService {
   // Configuración
   private isDebugMode: boolean = false;
   private readonly UNIT_SIZE: number = 0.7; // Unidades más pequeñas
-  public repulsionStrength: number = 0.035; // Aumentar ligeramente la fuerza de repulsión
+  public repulsionStrength: number = 0.035; // Fuerza de repulsión entre unidades
+  private readonly UNITS_PER_TEAM: number = 50; // Número de unidades por equipo
   
   constructor() { }
   
@@ -21,16 +22,67 @@ export class UnitService {
     this.scene = scene;
   }
   
-  // Crear unidades distribuidas aleatoriamente
-  createUnits(numUnits: number, boardSize: number): void {
-    for (let i = 0; i < numUnits; i++) {
-      // Generar posición aleatoria en el tablero
-      const x = (Math.random() * boardSize) - (boardSize / 2);
-      const z = (Math.random() * boardSize) - (boardSize / 2);
+  // Crear las unidades de ambos equipos
+  createUnits(boardSize: number): void {
+    // Limpiar unidades existentes si las hay
+    this.clear();
+    
+    // Dividir el tablero en dos mitades (izquierda para rojo, derecha para azul)
+    const halfBoardSize = boardSize / 2;
+    
+    // Posiciones más alejadas del centro para mejor separación de equipos
+    const offsetX = halfBoardSize * 0.7; // Mayor separación entre equipos
+    
+    // Radio más pequeño para agrupar más las unidades
+    const distributionRadius = halfBoardSize * 0.25; // Radio más pequeño = más agrupamiento
+    
+    // Crear unidades rojas en la mitad izquierda
+    this.createTeamUnits(
+      TeamType.RED, 
+      this.UNITS_PER_TEAM, 
+      new THREE.Vector3(-offsetX, 0, 0), // Centro de la zona roja
+      distributionRadius // Radio de distribución más pequeño
+    );
+    
+    // Crear unidades azules en la mitad derecha
+    this.createTeamUnits(
+      TeamType.BLUE, 
+      this.UNITS_PER_TEAM, 
+      new THREE.Vector3(offsetX, 0, 0), // Centro de la zona azul
+      distributionRadius // Radio de distribución más pequeño
+    );
+  }
+  
+  // Crear unidades para un equipo específico
+  private createTeamUnits(team: TeamType, count: number, center: THREE.Vector3, radius: number): void {
+    // Calcular una formación más ordenada y compacta
+    
+    // Creamos una formación por filas y columnas
+    const unitsPerRow = Math.ceil(Math.sqrt(count)); // Unidades aproximadas por fila
+    const spacing = (radius * 2) / unitsPerRow; // Espacio entre unidades
+    
+    // Offset inicial para centrar la formación
+    const startOffsetX = -spacing * (unitsPerRow - 1) / 2;
+    const startOffsetZ = -spacing * (Math.ceil(count / unitsPerRow) - 1) / 2;
+    
+    for (let i = 0; i < count; i++) {
+      // Calcular posición en la cuadrícula
+      const row = Math.floor(i / unitsPerRow);
+      const col = i % unitsPerRow;
+      
+      // Pequeña variación aleatoria para evitar formación demasiado perfecta
+      const variation = spacing * 0.2; // 20% de variación
+      const randomX = (Math.random() * variation * 2) - variation;
+      const randomZ = (Math.random() * variation * 2) - variation;
+      
+      // Calcular posición final
+      const x = center.x + startOffsetX + (col * spacing) + randomX;
+      const z = center.z + startOffsetZ + (row * spacing) + randomZ;
+      
       const position = new THREE.Vector3(x, this.UNIT_SIZE / 2, z);
       
-      // Crear nueva unidad
-      const unit = new Unit(this.UNIT_SIZE, position, this.scene, this.isDebugMode);
+      // Crear la nueva unidad con el equipo correspondiente
+      const unit = new Unit(this.UNIT_SIZE, position, this.scene, team, this.isDebugMode);
       this.units.push(unit);
     }
   }
@@ -139,6 +191,11 @@ export class UnitService {
   // Obtener unidades seleccionadas
   getSelectedUnits(): Unit[] {
     return this.selectedUnits;
+  }
+  
+  // Obtener unidades de un equipo específico
+  getTeamUnits(team: TeamType): Unit[] {
+    return this.units.filter(unit => unit.team === team);
   }
   
   // Activar/desactivar modo debug para visualizar colisiones

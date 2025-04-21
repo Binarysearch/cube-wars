@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy, Hos
 import * as THREE from 'three';
 import { CameraService } from '../services/camera.service';
 import { UnitService } from '../services/unit.service';
+import { TeamType } from '../models/unit.model';
 
 @Component({
   selector: 'app-game-board',
@@ -18,7 +19,7 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
   private animationFrameId: number | null = null;
   
   // Configuración del juego
-  private readonly BOARD_SIZE: number = 40;
+  private readonly BOARD_SIZE: number = 80;
   private readonly NUM_UNITS: number = 50;
   private isDebugMode: boolean = true;
 
@@ -169,8 +170,8 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private createUnits(): void {
-    // Crear unidades a través del servicio
-    this.unitService.createUnits(this.NUM_UNITS, this.BOARD_SIZE);
+    // Crear las unidades de ambos equipos
+    this.unitService.createUnits(this.BOARD_SIZE);
   }
 
   private animate(): void {

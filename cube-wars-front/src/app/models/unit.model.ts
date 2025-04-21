@@ -1,5 +1,23 @@
 import * as THREE from 'three';
 
+// Definición de equipos/civilizaciones
+export enum TeamType {
+  RED = 'red',
+  BLUE = 'blue'
+}
+
+// Colores para cada equipo (normal y seleccionado)
+export const TEAM_COLORS = {
+  [TeamType.RED]: {
+    normal: 0xcc0000,
+    selected: 0xff6666
+  },
+  [TeamType.BLUE]: {
+    normal: 0x0000cc,
+    selected: 0x6666ff
+  }
+};
+
 export class Unit {
   // Referencia al objeto 3D (cubo)
   public mesh: THREE.Mesh;
@@ -7,6 +25,9 @@ export class Unit {
   // Esfera de colisión
   public collisionSphere: THREE.Mesh;
   private collisionSphereVisible: boolean = true;
+  
+  // Equipo/civilización
+  public team: TeamType;
   
   // Física y movimiento
   public velocity: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
@@ -20,10 +41,21 @@ export class Unit {
   private readonly COLLISION_RADIUS_FACTOR: number = 1.8; 
   private readonly DAMPING: number = 0.95; // Factor de amortiguación para evitar movimientos perpetuos
   
-  constructor(size: number, position: THREE.Vector3, scene: THREE.Scene, isDebug: boolean = false) {
+  constructor(
+    size: number, 
+    position: THREE.Vector3, 
+    scene: THREE.Scene, 
+    team: TeamType = TeamType.RED,
+    isDebug: boolean = false
+  ) {
+    // Guardar el equipo
+    this.team = team;
+    
     // Crear el mesh del cubo (unidad)
     const geometry = new THREE.BoxGeometry(size, size, size);
-    const material = new THREE.MeshStandardMaterial({ color: 0x888888 }); 
+    const material = new THREE.MeshStandardMaterial({ 
+      color: TEAM_COLORS[team].normal
+    }); 
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.position.copy(position);
     
@@ -149,13 +181,13 @@ export class Unit {
   // Elegir esta unidad (para selección)
   public select(): void {
     const material = this.mesh.material as THREE.MeshStandardMaterial;
-    material.color.setHex(0x00ff00); // Color verde para unidades seleccionadas
+    material.color.setHex(TEAM_COLORS[this.team].selected);
   }
   
   // Deseleccionar esta unidad
   public deselect(): void {
     const material = this.mesh.material as THREE.MeshStandardMaterial;
-    material.color.setHex(0x888888); // Volver al color gris original
+    material.color.setHex(TEAM_COLORS[this.team].normal);
   }
   
   // Método para liberar recursos
