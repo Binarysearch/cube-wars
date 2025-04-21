@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy, Hos
 import * as THREE from 'three';
 import { CameraService } from '../services/camera.service';
 import { UnitService } from '../services/unit.service';
+import { ZoomService } from '../services/zoom.service';
 import { TeamType } from '../models/unit.model';
 
 @Component({
@@ -26,6 +27,7 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private cameraService: CameraService,
     private unitService: UnitService,
+    private zoomService: ZoomService,
     private renderer2: Renderer2
   ) { }
 
@@ -48,6 +50,16 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.unitService.clear();
     this.renderer.dispose();
     this.scene.clear();
+  }
+
+  // Evento de rueda del ratón para el zoom
+  @HostListener('wheel', ['$event'])
+  onMouseWheel(event: WheelEvent): void {
+    // Prevenir el comportamiento predeterminado del navegador (scroll)
+    event.preventDefault();
+    
+    // Manejar el evento de zoom con la rueda
+    this.zoomService.handleMouseWheel(event);
   }
 
   // HostListener para eventos del ratón
@@ -122,6 +134,9 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
       // Activar/desactivar modo debug con tecla D
       this.isDebugMode = !this.isDebugMode;
       this.unitService.setDebugMode(this.isDebugMode);
+    } else if (event.key === 'R' || event.key === 'r') {
+      // Resetear zoom con tecla R
+      this.zoomService.resetZoom();
     }
   }
 
@@ -167,6 +182,9 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Actualizar el servicio de cámara con el tablero creado
     this.cameraService.initialize(this.scene, this.renderer, this.gameBoard);
+    
+    // Inicializar el servicio de zoom con la cámara y los elementos necesarios
+    this.zoomService.initialize(this.cameraService.getCamera(), this.renderer, this.gameBoard);
   }
 
   private createUnits(): void {
@@ -179,6 +197,9 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
     
     // Actualizar la física y colisiones de las unidades
     this.unitService.update();
+    
+    // Ya no necesitamos actualizar el zoom cada frame, lo hacemos directamente en el evento wheel
+    // this.zoomService.update();
     
     // Renderizar la escena
     this.renderer.render(this.scene, this.cameraService.getCamera());
