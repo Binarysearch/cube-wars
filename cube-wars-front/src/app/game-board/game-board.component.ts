@@ -198,8 +198,8 @@ export class GameBoardComponent implements OnInit, AfterViewInit, OnDestroy {
     // Actualizar la física y colisiones de las unidades
     this.unitService.update();
     
-    // Ya no necesitamos actualizar el zoom cada frame, lo hacemos directamente en el evento wheel
-    // this.zoomService.update();
+    // Actualizar el zoom con efecto de suavizado
+    this.zoomService.update();
     
     // Renderizar la escena
     this.renderer.render(this.scene, this.cameraService.getCamera());
