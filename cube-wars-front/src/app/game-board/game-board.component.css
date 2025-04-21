@@ -5,11 +5,12 @@
     padding: 0;
     overflow: hidden;
     background-color: #000;
-    cursor: grab;
+    cursor: default;
 }
 
-.game-container:active {
-    cursor: grabbing;
+/* Estilo específico para el panning con la rueda */
+.panning-active {
+    cursor: move !important;
 }
 
 :host {

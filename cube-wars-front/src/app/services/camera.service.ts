@@ -72,6 +72,11 @@ export class CameraService {
     }
   }
   
+  // Método para verificar si se está haciendo panning
+  isPanning(): boolean {
+    return this.isDragging;
+  }
+  
   // Método para realizar el panning durante el movimiento
   performPanning(clientX: number, clientY: number): void {
     if (!this.isDragging || !this.referenceCam) return;
@@ -91,7 +96,6 @@ export class CameraService {
     
     // Mantenemos la altura de la cámara constante
     this.camera.position.y = this.initialCameraPosition.y;
-    
   }
   
   // Método para finalizar el panning
