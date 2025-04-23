@@ -31,7 +31,7 @@ export class CameraService {
     
     // Configuración de la cámara
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.01, 10000);
     this.camera.position.set(10, 10, 10);
     this.camera.lookAt(0, 0, 0);
     
